@@ -1,8 +1,12 @@
 -- External script (dang.lua)
 
--- This assumes mobsToCheck is passed to the script already
+-- Ensure both mobsToCheck and webhookURL are passed to the script
 if not mobsToCheck then
     error("mobsToCheck configuration is not provided!")
+end
+
+if not webhookURL then
+    error("webhookURL is not provided!")
 end
 
 -- Function to check for mobs in Workspace -> Alive
@@ -35,4 +39,69 @@ local function checkForMobs()
     return mobsFound
 end
 
--- You can now call checkForMobs() or any other functionality, and it will use the external mobsToCheck configuration
+-- Function to send the webhook with server info and mob statuses
+local function sendWebhook(mobsFound)
+    local serverInfo = getServerInfo()  -- Get the latest server info
+    local playerCount = #Players:GetPlayers()  -- Get current player count
+
+    local data = {
+        ["content"] = "@everyone Server Info and Mob Statuses:",  -- Optional: A simple message before the embed
+        ["embeds"] = {
+            {
+                ["title"] = "Server Information",
+                ["description"] = "Here is the server information:",
+                ["color"] = 16777215,  -- White color
+                ["fields"] = {
+                    {["name"] = "Server Name", ["value"] = serverInfo.name, ["inline"] = false},
+                    {["name"] = "Region", ["value"] = serverInfo.region, ["inline"] = false},
+                    {["name"] = "Server Age", ["value"] = serverInfo.age, ["inline"] = false},
+                    {["name"] = "Players", ["value"] = tostring(playerCount), ["inline"] = false}
+                },
+                ["footer"] = {["text"] = "Server Info Webhook"}
+            }
+        }
+    }
+
+    local mobAlerts = {}
+    if mobsFound.runeGolem then
+        table.insert(mobAlerts, {["title"] = "Rune Golem Found!", ["description"] = "The Rune Golem has been spotted in this server!", ["color"] = 16711680})  -- Red color
+    end
+    if mobsFound.elderTreant then
+        table.insert(mobAlerts, {["title"] = "Elder Treant Found!", ["description"] = "The Elder Treant has been spotted in this server!", ["color"] = 16711680})  -- Red color
+    end
+    if mobsFound.motherSpider then
+        table.insert(mobAlerts, {["title"] = "Mother Spider Found!", ["description"] = "The Mother Spider has been spotted in this server!", ["color"] = 16711680})  -- Red color
+    end
+    if mobsFound.direBear then
+        table.insert(mobAlerts, {["title"] = "Dire Bear Found!", ["description"] = "The Dire Bear has been spotted in this server!", ["color"] = 16711680})  -- Red color
+    end
+
+    -- Add mob alerts if any
+    if #mobAlerts > 0 then
+        for _, alert in ipairs(mobAlerts) do
+            table.insert(data["embeds"], alert)
+        end
+
+        local jsonData = HttpService:JSONEncode(data)
+
+        -- Send the webhook
+        local success, response = pcall(function()
+            return http.request({
+                Url = webhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = jsonData
+            })
+        end)
+
+        if success then
+            print("Webhook sent successfully!")
+        else
+            warn("Failed to send webhook: " .. tostring(response))
+        end
+    else
+        print("No mobs found, no webhook sent.")
+    end
+end
+
+-- The rest of the script remains the same as before, using mobsToCheck and webhookURL
