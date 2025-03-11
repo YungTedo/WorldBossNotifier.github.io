@@ -1,16 +1,58 @@
 -- External script (dang.lua)
 
--- Custom environment setup
-local mobsToCheck = _G.mobsToCheck  -- Access mobsToCheck from the global environment
-local webhookURL = _G.webhookURL    -- Access webhookURL from the global environment
-
--- Check if mobsToCheck and webhookURL are provided
+-- Ensure both mobsToCheck and webhookURL are passed to the script
 if not mobsToCheck then
     error("mobsToCheck configuration is not provided!")
 end
 
 if not webhookURL then
     error("webhookURL is not provided!")
+end
+
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+-- Disable streaming
+Workspace.StreamingEnabled = false
+
+-- Function to get Server Info
+local function getServerInfo()
+    local serverInfo = {}
+
+    -- Access GlobalSettings in ReplicatedStorage
+    local globalSettings = ReplicatedStorage:WaitForChild("GlobalSettings", 5)  -- Wait up to 5 seconds for GlobalSettings
+    if not globalSettings then
+        warn("GlobalSettings not found in ReplicatedStorage.")
+        return serverInfo
+    end
+
+    local serverName = globalSettings:FindFirstChild("ServerName")
+    local serverRegion = globalSettings:FindFirstChild("ServerRegion")
+    local serverAge = globalSettings:FindFirstChild("ServerAge") -- Assuming ServerAge is in seconds
+
+    if serverName then
+        serverInfo.name = serverName.Value
+    else
+        serverInfo.name = "Unknown Server"
+    end
+
+    if serverRegion then
+        serverInfo.region = serverRegion.Value
+    else
+        serverInfo.region = "Unknown Region"
+    end
+
+    if serverAge then
+        -- Convert server age from seconds to hours (1 hour = 3600 seconds)
+        local serverAgeInHours = serverAge.Value / 3600
+        serverInfo.age = string.format("%.2f", serverAgeInHours) .. " hours"
+    else
+        serverInfo.age = "Unknown Age"
+    end
+
+    return serverInfo
 end
 
 -- Function to check for mobs in Workspace -> Alive
@@ -43,7 +85,7 @@ local function checkForMobs()
     return mobsFound
 end
 
--- Function to send the webhook with server info and mob statuses
+-- Function to send Webhook with server info and mob statuses
 local function sendWebhook(mobsFound)
     local serverInfo = getServerInfo()  -- Get the latest server info
     local playerCount = #Players:GetPlayers()  -- Get current player count
@@ -88,7 +130,7 @@ local function sendWebhook(mobsFound)
 
         local jsonData = HttpService:JSONEncode(data)
 
-        -- Send the webhook
+        -- Use http.request to send the data
         local success, response = pcall(function()
             return http.request({
                 Url = webhookURL,
@@ -108,4 +150,30 @@ local function sendWebhook(mobsFound)
     end
 end
 
--- The rest of the script remains the same as before, using mobsToCheck and webhookURL
+-- Function to continuously check for mobs every few seconds
+local function continuouslyCheckForMobs()
+    -- Check instantly first
+    local mobsFound = checkForMobs()
+    sendWebhook(mobsFound)  -- Send the webhook once mobs are found
+
+    -- Then continue checking every 30 seconds
+    while true do
+        print("Checking for mobs...")
+        -- Wait a small time before checking again (e.g., 30 seconds)
+        wait(30)
+
+        -- Check if any mobs have spawned
+        mobsFound = checkForMobs()
+        sendWebhook(mobsFound)  -- Send the webhook once mobs are found
+    end
+end
+
+-- Main execution when the script runs
+local function execute()
+    print("Script is executing...")
+    -- Start checking for the mobs continuously
+    continuouslyCheckForMobs()
+end
+
+-- Run the function immediately upon script execution
+execute()
