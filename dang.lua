@@ -1,6 +1,10 @@
 -- External script (dang.lua)
 
--- Ensure both mobsToCheck and webhookURL are passed to the script
+-- Custom environment setup
+local mobsToCheck = _G.mobsToCheck  -- Access mobsToCheck from the global environment
+local webhookURL = _G.webhookURL    -- Access webhookURL from the global environment
+
+-- Check if mobsToCheck and webhookURL are provided
 if not mobsToCheck then
     error("mobsToCheck configuration is not provided!")
 end
@@ -45,7 +49,7 @@ local function sendWebhook(mobsFound)
     local playerCount = #Players:GetPlayers()  -- Get current player count
 
     local data = {
-        ["content"] = "@everyone Server Info and Mob Statuses:",  -- Optional: A simple message before the embed
+        ["content"] = "Server Info and Mob Statuses:",  -- Optional: A simple message before the embed
         ["embeds"] = {
             {
                 ["title"] = "Server Information",
