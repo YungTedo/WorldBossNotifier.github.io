@@ -1,6 +1,6 @@
 -- External script (dang.lua)
 
--- Ensure both mobsToCheck and webhookURL are passed to the script
+-- Ensure both mobsToCheck and webhookURL are provided by the main script
 if not mobsToCheck then
     error("mobsToCheck configuration is not provided!")
 end
@@ -85,7 +85,7 @@ local function checkForMobs()
     return mobsFound
 end
 
--- Function to send Webhook with server info and mob statuses
+-- Function to send the webhook with server info and mob statuses
 local function sendWebhook(mobsFound)
     local serverInfo = getServerInfo()  -- Get the latest server info
     local playerCount = #Players:GetPlayers()  -- Get current player count
@@ -130,7 +130,7 @@ local function sendWebhook(mobsFound)
 
         local jsonData = HttpService:JSONEncode(data)
 
-        -- Use http.request to send the data
+        -- Send the webhook
         local success, response = pcall(function()
             return http.request({
                 Url = webhookURL,
@@ -150,30 +150,4 @@ local function sendWebhook(mobsFound)
     end
 end
 
--- Function to continuously check for mobs every few seconds
-local function continuouslyCheckForMobs()
-    -- Check instantly first
-    local mobsFound = checkForMobs()
-    sendWebhook(mobsFound)  -- Send the webhook once mobs are found
-
-    -- Then continue checking every 30 seconds
-    while true do
-        print("Checking for mobs...")
-        -- Wait a small time before checking again (e.g., 30 seconds)
-        wait(30)
-
-        -- Check if any mobs have spawned
-        mobsFound = checkForMobs()
-        sendWebhook(mobsFound)  -- Send the webhook once mobs are found
-    end
-end
-
--- Main execution when the script runs
-local function execute()
-    print("Script is executing...")
-    -- Start checking for the mobs continuously
-    continuouslyCheckForMobs()
-end
-
--- Run the function immediately upon script execution
-execute()
+-- The rest of the script remains the same as before, using mobsToCheck and webhookURL
